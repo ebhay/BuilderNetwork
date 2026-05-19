@@ -1,0 +1,85 @@
+import { createHash } from "node:crypto";
+import { createAiClient } from "@/lib/ai/client";
+import { aiReviewSchema, type AiReview } from "@/lib/ai/review-schema";
+
+function scoreToBand(score: number): AiReview["qualityBand"] {
+  if (score < 6) return "NEEDS_REVISION";
+  if (score < 7.5) return "GOOD";
+  if (score < 9) return "STRONG";
+  return "EXCELLENT";
+}
+
+function deterministicMockReview(input: { title: string; description: string }): AiReview {
+  const hash = createHash("sha256")
+    .update(`${input.title}|${input.description}`)
+    .digest("hex");
+  const seed = Number.parseInt(hash.slice(0, 8), 16);
+  const score = Number((4.5 + ((seed % 50) / 10)).toFixed(1));
+  const qualityScore = Math.min(10, Math.max(0, score));
+  const projectLevel: AiReview["projectLevel"] =
+    qualityScore >= 8 ? "EXPERT" : qualityScore >= 6.5 ? "INTERMEDIATE" : "BEGINNER";
+
+  return {
+    qualityScore,
+    qualityBand: scoreToBand(qualityScore),
+    publishRecommendation: qualityScore >= 6 ? "publishable" : "revise-first",
+    projectLevel,
+    requiredSkills: ["Frontend", "Backend", "Database", "API Integration"],
+    tags: ["Web App", "AI", "Builder Network"],
+    marketAlternatives: [
+      {
+        name: "Similar category product",
+        difference: "Targets related workflows with a different builder audience.",
+      },
+    ],
+    worthinessReview:
+      "The idea is practical and usable for builders, with clear room to sharpen differentiation.",
+    feasibilityReview:
+      "This is feasible as a staged MVP using common web infrastructure and API integrations.",
+    brutalFeedback:
+      "The concept is useful but needs one sharper reason users would pick it over existing tools.",
+    suggestions: [
+      "Add one concrete differentiator in the description.",
+      "Narrow the first release to one core user workflow.",
+      "State the minimum deliverable outcome for version one.",
+    ],
+  };
+}
+
+export async function generateAiReview(input: {
+  title: string;
+  description: string;
+}): Promise<{ review: AiReview; source: "nim" | "mock" }> {
+  const client = createAiClient();
+  const model = process.env.AI_MODEL ?? "deepseek-ai/deepseek-v4-pro";
+
+  if (!client) {
+    if (process.env.NODE_ENV !== "production") {
+      return { review: deterministicMockReview(input), source: "mock" };
+    }
+    throw new Error("AI API key is missing in production environment.");
+  }
+
+  const systemPrompt =
+    "You are an AI reviewer. Return strict JSON only with keys: qualityScore, qualityBand, publishRecommendation, projectLevel, requiredSkills, tags, marketAlternatives, worthinessReview, feasibilityReview, brutalFeedback, suggestions. Never rewrite user title/description. Use broad skill categories. Use quality bands: NEEDS_REVISION, GOOD, STRONG, EXCELLENT.";
+  const userPrompt = `Title: ${input.title}\nDescription: ${input.description}`;
+
+  const completion = await client.chat.completions.create({
+    model,
+    temperature: 0.2,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  const content = completion.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("AI response content was empty.");
+  }
+
+  const parsedJson = JSON.parse(content);
+  const review = aiReviewSchema.parse(parsedJson);
+  return { review, source: "nim" };
+}
