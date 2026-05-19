@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { AtSign, Check, CircleUserRound, Code2, Globe, Leaf, Link2, Rocket, Search, TrendingUp, User, X, Zap } from "lucide-react";
+import { AtSign, Check, CircleUserRound, Code2, Globe, Leaf, Rocket, Search, TrendingUp, User, X, Zap } from "lucide-react";
 import { completeOnboarding } from "@/features/onboarding/actions";
 import { Button } from "@/components/ui/button";
 import { UploadField } from "@/components/upload-field";
@@ -22,6 +22,45 @@ type SocialRow = {
   isPublic: boolean;
 };
 
+type OnboardingInitialData = {
+  name: string;
+  username: string;
+  bio: string;
+  codingLevel: "BEGINNER" | "INTERMEDIATE" | "EXPERT";
+  profileImageUrl: string;
+  skills: SkillRow[];
+  socialLinks: SocialRow[];
+};
+
+function BrandIcon({
+  type,
+  className = "h-4 w-4",
+}: {
+  type: SocialRow["type"];
+  className?: string;
+}) {
+  if (type === "GITHUB") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+        <path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.55-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.3 3.49 1 .11-.78.42-1.3.77-1.6-2.67-.31-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.23-3.22-.12-.31-.54-1.56.12-3.24 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.68.24 2.93.12 3.24.77.84 1.23 1.91 1.23 3.22 0 4.62-2.81 5.64-5.49 5.94.43.37.82 1.11.82 2.24v3.32c0 .32.22.7.83.58A12 12 0 0 0 12 .5Z" />
+      </svg>
+    );
+  }
+
+  if (type === "LINKEDIN") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+        <path d="M20.45 20.45h-3.56v-5.58c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.33 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12ZM7.11 20.45H3.55V9h3.56v11.45Z" />
+      </svg>
+    );
+  }
+
+  if (type === "TWITTER") return <X className={className} />;
+  if (type === "PORTFOLIO") return <Globe className={className} />;
+  if (type === "DISCORD") return <CircleUserRound className={className} />;
+  return <Globe className={className} />;
+}
+
 const MIN_REQUIRED_SKILLS = 5;
 const USERNAME_PATTERN = /^[a-z0-9_]{3,30}$/;
 const DEFAULT_SKILL_OPTIONS = Object.values(SKILL_SUGGESTIONS).flat();
@@ -30,17 +69,23 @@ function normalizeSkillName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
-export function OnboardingForm({ nextPath = "/ideas" }: { nextPath?: string }) {
-  const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [bio, setBio] = useState("");
-  const [codingLevel, setCodingLevel] = useState<"BEGINNER" | "INTERMEDIATE" | "EXPERT">("BEGINNER");
-  const [skills, setSkills] = useState<SkillRow[]>([]);
+export function OnboardingForm({
+  nextPath = "/ideas",
+  initialData,
+}: {
+  nextPath?: string;
+  initialData?: Partial<OnboardingInitialData>;
+}) {
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [username, setUsername] = useState(initialData?.username ?? "");
+  const [bio, setBio] = useState(initialData?.bio ?? "");
+  const [codingLevel, setCodingLevel] = useState<"BEGINNER" | "INTERMEDIATE" | "EXPERT">(initialData?.codingLevel ?? "BEGINNER");
+  const [skills, setSkills] = useState<SkillRow[]>(initialData?.skills ?? []);
   const [skillDraft, setSkillDraft] = useState("");
   const [skillOptions, setSkillOptions] = useState<string[]>(DEFAULT_SKILL_OPTIONS);
   const [showSkillSuggestions, setShowSkillSuggestions] = useState(false);
-  const [socialLinks, setSocialLinks] = useState<SocialRow[]>([]);
-  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [socialLinks, setSocialLinks] = useState<SocialRow[]>(initialData?.socialLinks ?? []);
+  const [profileImageUrl, setProfileImageUrl] = useState(initialData?.profileImageUrl ?? "");
   const [formError, setFormError] = useState("");
   const filteredSkills = skills.filter((skill) => skill.name.trim().length > 0);
   const filteredLinks = socialLinks.filter((link) => link.url.trim().length > 0);
@@ -341,16 +386,17 @@ export function OnboardingForm({ nextPath = "/ideas" }: { nextPath?: string }) {
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 {[
-                  { type: "GITHUB" as const, label: "GitHub", placeholder: "github.com/username", icon: Link2 },
-                  { type: "LINKEDIN" as const, label: "LinkedIn", placeholder: "linkedin.com/in/username", icon: CircleUserRound },
+                  { type: "GITHUB" as const, label: "GitHub", placeholder: "github.com/username" },
+                  { type: "LINKEDIN" as const, label: "LinkedIn", placeholder: "linkedin.com/in/username" },
                   { type: "TWITTER" as const, label: "X (Twitter)", placeholder: "x.com/username", icon: X },
                   { type: "PORTFOLIO" as const, label: "Portfolio", placeholder: "yourportfolio.dev", icon: Globe },
                 ].map((preset) => {
                   const current = socialLinks.find((row) => row.type === preset.type);
-                  const Icon = preset.icon;
                   return (
                     <div key={preset.type} className="flex h-11 items-center gap-2 rounded-md border border-border bg-background/70 px-3">
-                      <Icon className="h-4 w-4 shrink-0 text-ink" />
+                      <span className="shrink-0 text-ink">
+                        <BrandIcon type={preset.type} />
+                      </span>
                       <p className="w-24 shrink-0 text-sm font-medium text-ink">{preset.label}</p>
                       <Input
                         type="url"
@@ -394,9 +440,6 @@ export function OnboardingForm({ nextPath = "/ideas" }: { nextPath?: string }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="overflow-hidden rounded-lg border border-border bg-card">
-              <div
-                className="h-24 border-b border-border/60 bg-accent/35 bg-[radial-gradient(hsl(var(--primary))_1.1px,transparent_1.1px)] bg-[size:10px_10px]"
-              />
               <div className="space-y-4 p-4">
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -437,12 +480,7 @@ export function OnboardingForm({ nextPath = "/ideas" }: { nextPath?: string }) {
                   ) : null}
                   {previewLinks.map((link) => (
                     <span key={`${link.type}-${link.url}`} className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background">
-                      {link.type === "GITHUB" ? <Link2 className="h-4 w-4" /> : null}
-                      {link.type === "LINKEDIN" ? <CircleUserRound className="h-4 w-4" /> : null}
-                      {link.type === "TWITTER" ? <X className="h-4 w-4" /> : null}
-                      {link.type === "PORTFOLIO" ? <Globe className="h-4 w-4" /> : null}
-                      {link.type === "DISCORD" ? <CircleUserRound className="h-4 w-4" /> : null}
-                      {link.type === "OTHER" ? <Globe className="h-4 w-4" /> : null}
+                      <BrandIcon type={link.type} />
                     </span>
                   ))}
                 </div>

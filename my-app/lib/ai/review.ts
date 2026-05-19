@@ -46,6 +46,101 @@ function deterministicMockReview(input: { title: string; description: string }):
   };
 }
 
+function splitTextList(input: string): string[] {
+  return input
+    .split(/\r?\n|•|- |\d+\.\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeAiReviewPayload(raw: unknown): unknown {
+  const source = (raw ?? {}) as Record<string, unknown>;
+
+  const rawScore =
+    typeof source.qualityScore === "number"
+      ? source.qualityScore
+      : typeof source.qualityScore === "string"
+        ? Number.parseFloat(source.qualityScore)
+        : 0;
+  const qualityScore = Number.isFinite(rawScore) ? Math.min(10, Math.max(0, rawScore)) : 0;
+
+  const qualityBand =
+    source.qualityBand === "NEEDS_REVISION" ||
+    source.qualityBand === "GOOD" ||
+    source.qualityBand === "STRONG" ||
+    source.qualityBand === "EXCELLENT"
+      ? source.qualityBand
+      : scoreToBand(qualityScore);
+
+  const projectLevel =
+    source.projectLevel === "BEGINNER" ||
+    source.projectLevel === "INTERMEDIATE" ||
+    source.projectLevel === "EXPERT"
+      ? source.projectLevel
+      : qualityScore >= 8
+        ? "EXPERT"
+        : qualityScore >= 6.5
+          ? "INTERMEDIATE"
+          : "BEGINNER";
+
+  const requiredSkills = Array.isArray(source.requiredSkills)
+    ? source.requiredSkills.map(String).map((s) => s.trim()).filter(Boolean)
+    : typeof source.requiredSkills === "string"
+      ? splitTextList(source.requiredSkills)
+      : [];
+
+  const tags = Array.isArray(source.tags)
+    ? source.tags.map(String).map((s) => s.trim()).filter(Boolean)
+    : typeof source.tags === "string"
+      ? splitTextList(source.tags)
+      : [];
+
+  const marketAlternativesRaw = Array.isArray(source.marketAlternatives)
+    ? source.marketAlternatives
+    : typeof source.marketAlternatives === "string"
+      ? splitTextList(source.marketAlternatives)
+      : [];
+
+  const marketAlternatives = marketAlternativesRaw
+    .map((item) => {
+      if (typeof item === "string") {
+        return { name: item.trim(), difference: "Similar category option." };
+      }
+      const obj = item as Record<string, unknown>;
+      const name = String(obj.name ?? obj.title ?? "").trim();
+      const difference = String(obj.difference ?? obj.note ?? obj.description ?? "").trim();
+      if (!name) return null;
+      return {
+        name,
+        difference: difference || "Similar category option.",
+      };
+    })
+    .filter((item): item is { name: string; difference: string } => Boolean(item));
+
+  const suggestions = Array.isArray(source.suggestions)
+    ? source.suggestions.map(String).map((s) => s.trim()).filter(Boolean)
+    : typeof source.suggestions === "string"
+      ? splitTextList(source.suggestions)
+      : [];
+
+  return {
+    qualityScore,
+    qualityBand,
+    publishRecommendation:
+      String(source.publishRecommendation ?? "").trim() || (qualityScore >= 6 ? "publishable" : "revise-first"),
+    projectLevel,
+    requiredSkills: requiredSkills.length ? requiredSkills : ["General Development"],
+    tags: tags.length ? tags : ["Builder"],
+    marketAlternatives: marketAlternatives.length
+      ? marketAlternatives
+      : [{ name: "Similar category product", difference: "Comparable use case with different execution." }],
+    worthinessReview: String(source.worthinessReview ?? source.worthReview ?? "").trim() || "Needs clearer differentiation.",
+    feasibilityReview: String(source.feasibilityReview ?? source.feasibility ?? "").trim() || "Feasible with staged MVP execution.",
+    brutalFeedback: String(source.brutalFeedback ?? source.feedback ?? "").trim() || "Clarify the strongest unique value proposition.",
+    suggestions: suggestions.length ? suggestions : ["Define one clear differentiator for the first release."],
+  };
+}
+
 export async function generateAiReview(input: {
   title: string;
   description: string;
@@ -80,6 +175,7 @@ export async function generateAiReview(input: {
   }
 
   const parsedJson = JSON.parse(content);
-  const review = aiReviewSchema.parse(parsedJson);
+  const normalized = normalizeAiReviewPayload(parsedJson);
+  const review = aiReviewSchema.parse(normalized);
   return { review, source: "nim" };
 }

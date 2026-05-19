@@ -14,7 +14,7 @@ type IdeaCardProps = {
     project_level: string | null;
     tags: string[];
     required_skills: string[];
-    profiles: { name: string | null }[] | null;
+    profiles: { name: string | null; username: string | null }[] | null;
     derivedStatus: "IDEA" | "IN_PROGRESS" | "BUILT";
     implementationCount: number;
     builtCount: number;
@@ -22,6 +22,9 @@ type IdeaCardProps = {
 };
 
 export function IdeaCard({ idea }: IdeaCardProps) {
+  const profile = idea.profiles?.[0] ?? null;
+  const builderLabel = profile?.username ? `@${profile.username}` : (profile?.name ?? "Unknown builder");
+
   return (
     <Card className="border border-border">
       <CardHeader className="space-y-3">
@@ -42,7 +45,7 @@ export function IdeaCard({ idea }: IdeaCardProps) {
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-muted-foreground">
         <p className="line-clamp-3">{idea.description}</p>
-        <p>By {idea.profiles?.[0]?.name ?? "Unknown builder"}</p>
+        <p>By {builderLabel}</p>
         <p>
           Status {idea.derivedStatus} · {idea.implementationCount} builds · {idea.builtCount} built
         </p>

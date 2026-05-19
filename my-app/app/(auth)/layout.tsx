@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
-import { getCurrentUser, getProfile } from "@/lib/auth/session";
 import { logoutAction } from "@/features/auth/actions";
+import { getCurrentUser, getProfile } from "@/lib/auth/session";
 
-export default async function PublicLayout({ children }: { children: ReactNode }) {
+export default async function AuthLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   const profile = user ? await getProfile(user.id) : null;
   const avatarLabel = profile?.name?.trim()?.slice(0, 1).toUpperCase() ?? user?.email?.slice(0, 1).toUpperCase() ?? "U";

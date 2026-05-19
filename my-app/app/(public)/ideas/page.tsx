@@ -42,7 +42,7 @@ export default async function IdeasPage({ searchParams }: Props) {
   let query = supabase
     .from("ideas")
     .select(
-      "id,title,description,visibility,quality_score,project_level,tags,required_skills,created_at,profiles:posted_by_user_id(name)",
+      "id,title,description,visibility,quality_score,project_level,tags,required_skills,created_at,profiles:posted_by_user_id(name,username)",
     )
     .in("visibility", ["PUBLISHED", "NEEDS_REFINEMENT"])
     .limit(30);
