@@ -24,6 +24,8 @@ const onboardingSchema = z.object({
     .trim()
     .toLowerCase()
     .regex(/^[a-z0-9_]{3,30}$/, "Username must be 3-30 chars using lowercase letters, numbers, or underscore."),
+  headline: z.string().trim().max(120).optional(),
+  location: z.string().trim().max(80).optional(),
   bio: z.string().trim().max(500).optional(),
   codingLevel: z.enum(["BEGINNER", "INTERMEDIATE", "EXPERT"]),
   profileImageUrl: z.string().trim().url().optional().or(z.literal("")),
@@ -53,6 +55,8 @@ export async function completeOnboarding(formData: FormData) {
   const input = onboardingSchema.parse({
     name: formData.get("name"),
     username: formData.get("username"),
+    headline: formData.get("headline") ?? undefined,
+    location: formData.get("location") ?? undefined,
     bio: formData.get("bio") ?? undefined,
     codingLevel: formData.get("codingLevel"),
     profileImageUrl: formData.get("profileImageUrl"),
@@ -76,6 +80,8 @@ export async function completeOnboarding(formData: FormData) {
     id: user.id,
     name: input.name,
     username: input.username,
+    headline: input.headline || null,
+    location: input.location || null,
     bio: input.bio || null,
     coding_level: input.codingLevel,
     profile_image_url: input.profileImageUrl || null,

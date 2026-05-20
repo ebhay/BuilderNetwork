@@ -6,6 +6,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { Card, CardContent } from "@/components/ui/card";
 import { fetchIdeaStatsMap } from "@/lib/ideas/status";
+import { getCurrentUser, getProfile } from "@/lib/auth/session";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 
 type Props = {
   searchParams: Promise<{
@@ -38,6 +40,8 @@ export default async function IdeasPage({ searchParams }: Props) {
   }
   const params = await searchParams;
   const supabase = await createSupabaseServerClient();
+  const user = await getCurrentUser();
+  const profile = user ? await getProfile(user.id) : null;
 
   let query = supabase
     .from("ideas")
@@ -78,48 +82,65 @@ export default async function IdeasPage({ searchParams }: Props) {
   });
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-6 py-10">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-3xl font-semibold text-ink">Idea feed</h1>
-          <p className="text-sm text-muted-foreground">
-            Browse published ideas and ideas marked as needs refinement.
-          </p>
-        </div>
-        <Link href="/ideas/submit" className={buttonVariants({ variant: "default" })}>
-          Submit an idea
-        </Link>
-      </header>
-      <IdeaFilters searchParams={params} />
-      {filteredIdeas.length === 0 ? (
-        <Card className="border border-border">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="mb-4 text-muted-foreground">No ideas match your current filters.</p>
-            <Link href="/ideas/submit" className={buttonVariants({ variant: "default" })}>
-              Be the first to submit one
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <section className="grid gap-4 md:grid-cols-2">
-          {filteredIdeas.map((idea) => {
-            const stats = statsMap[idea.id] ?? {
-              derivedStatus: "IDEA" as const,
-              implementationCount: 0,
-              builtCount: 0,
-            };
-            return (
-              <IdeaCard
-                key={idea.id}
-                idea={{
-                  ...idea,
-                  ...stats,
-                }}
-              />
-            );
-          })}
-        </section>
-      )}
+    <main className="flex h-screen w-full gap-6 overflow-hidden pb-8">
+      <AppSidebar
+        active="ideas"
+        user={
+          user
+            ? {
+                id: user.id,
+                email: user.email,
+                name: profile?.name,
+                username: profile?.username,
+                profileImageUrl: profile?.profile_image_url,
+              }
+            : null
+        }
+      />
+
+      <div className="hide-scrollbar min-w-0 flex-1 space-y-6 overflow-y-auto px-6 pt-6">
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-heading text-3xl font-semibold text-ink">Explore Ideas</h1>
+            <p className="text-sm text-muted-foreground">
+              Discover ideas and problems worth building.
+            </p>
+          </div>
+          <Link href="/ideas/submit" className={buttonVariants({ variant: "default" })}>
+            Submit an idea
+          </Link>
+        </header>
+        <IdeaFilters searchParams={params} />
+        {filteredIdeas.length === 0 ? (
+          <Card className="border border-border">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="mb-4 text-muted-foreground">No ideas match your current filters.</p>
+              <Link href="/ideas/submit" className={buttonVariants({ variant: "default" })}>
+                Be the first to submit one
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <section className="grid gap-4 md:grid-cols-2">
+            {filteredIdeas.map((idea) => {
+              const stats = statsMap[idea.id] ?? {
+                derivedStatus: "IDEA" as const,
+                implementationCount: 0,
+                builtCount: 0,
+              };
+              return (
+                <IdeaCard
+                  key={idea.id}
+                  idea={{
+                    ...idea,
+                    ...stats,
+                  }}
+                />
+              );
+            })}
+          </section>
+        )}
+      </div>
     </main>
   );
 }

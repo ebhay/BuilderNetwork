@@ -11,13 +11,13 @@ const tabs = [
 
 export function DashboardTabs({ active }: { active: string }) {
   return (
-    <nav className="flex flex-wrap gap-2">
+    <nav className="flex flex-wrap gap-2 rounded-md border border-border bg-card p-1">
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={`/dashboard?tab=${tab.key}`}
           className={buttonVariants({
-            variant: active === tab.key ? "default" : "outline",
+            variant: active === tab.key ? "default" : "ghost",
           })}
         >
           {tab.label}

@@ -43,6 +43,15 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-card-tint-peach: var(--card-tint-peach);
+  --color-card-tint-rose: var(--color-card-tint-rose);
+  --color-card-tint-mint: var(--color-card-tint-mint);
+  --color-card-tint-lavender: var(--card-tint-lavender);
+  --color-card-tint-sky: var(--color-card-tint-sky);
+  --color-card-tint-yellow: var(--color-card-tint-yellow);
+  --color-card-tint-yellow-bold: var(--color-card-tint-yellow-bold);
+  --color-card-tint-cream: var(--color-card-tint-cream);
+  --color-card-tint-gray: var(--color-card-tint-gray);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -90,6 +99,15 @@
   --on-dark-muted: #c7d2e1;
   --ink: #111827;
   --shadow-mockup: 0 24px 48px -8px rgba(15, 15, 15, 0.2);
+  --card-tint-peach: #fff0ea;
+  --card-tint-rose: #fff0f4;
+  --card-tint-mint: #eefcf2;
+  --card-tint-lavender: #f6f3ff;
+  --card-tint-sky: #f0f7ff;
+  --card-tint-yellow: #fefce8;
+  --card-tint-yellow-bold: #fef9c3;
+  --card-tint-cream: #fafaf6;
+  --card-tint-gray: #f5f5f5;
 }
 
 .dark {
@@ -128,6 +146,15 @@
   --on-dark: #f8fafc;
   --on-dark-muted: #94a3b8;
   --ink: #f8fafc;
+  --card-tint-peach: #221c1a;
+  --card-tint-rose: #221a1d;
+  --card-tint-mint: #17221b;
+  --card-tint-lavender: #1f1b29;
+  --card-tint-sky: #161f28;
+  --card-tint-yellow: #222117;
+  --card-tint-yellow-bold: #2e2c16;
+  --card-tint-cream: #181816;
+  --card-tint-gray: #1b1b1f;
 }
 
 @layer base {
@@ -145,5 +172,42 @@
 @layer components {
   .shadow-mockup {
     box-shadow: var(--shadow-mockup);
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.3; }
+  }
+
+  .animate-float-slow {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .animate-float-medium {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-fast {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 4s ease-in-out infinite;
   }
 }

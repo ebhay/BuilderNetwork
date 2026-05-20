@@ -16,7 +16,7 @@ export function IdeaFilters({
         <form className="grid gap-4 md:grid-cols-5">
           <div className="space-y-2">
             <Label htmlFor="skill">Skill</Label>
-            <Input id="skill" name="skill" defaultValue={searchParams.skill ?? ""} />
+            <Input id="skill" name="skill" placeholder="Search by skill or keyword" defaultValue={searchParams.skill ?? ""} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="level">Level</Label>
@@ -62,7 +62,7 @@ export function IdeaFilters({
               </SelectContent>
             </Select>
           </div>
-          <div className="md:col-span-5 flex gap-3">
+          <div className="md:col-span-5 flex items-center gap-3 border-t border-border/70 pt-3">
             <Button type="submit">Apply filters</Button>
             <Link href="/ideas" className={buttonVariants({ variant: "outline" })}>
               Reset

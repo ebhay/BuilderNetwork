@@ -32,16 +32,17 @@ export function MyIdeasList({
   return (
     <div className="grid gap-3">
       {ideas.map((idea) => (
-        <Card key={idea.id} className="border border-border">
-          <CardHeader className="pb-3">
+        <Card key={idea.id} className="overflow-hidden border border-border">
+          <CardHeader className="space-y-2 pb-3">
+            <div className="h-1 w-20 rounded-full bg-primary/80" />
             <CardTitle className="font-heading text-lg">{idea.title}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="rounded-md">{idea.visibility}</Badge>
               <Badge variant="outline" className="rounded-md">{idea.review_status}</Badge>
-              {idea.quality_score ? (
-                <Badge variant="outline" className="rounded-md">{idea.quality_score.toFixed(1)}</Badge>
+              {idea.quality_score !== null ? (
+                <Badge variant="outline" className="rounded-md">Score {idea.quality_score.toFixed(1)}</Badge>
               ) : null}
             </div>
             <p>{idea.implementationCount} builds · {idea.builtCount} built</p>
@@ -59,3 +60,4 @@ export function MyIdeasList({
     </div>
   );
 }
+

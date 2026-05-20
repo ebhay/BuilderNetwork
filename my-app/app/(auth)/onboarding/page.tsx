@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { OnboardingForm } from "@/features/onboarding/components/onboarding-form";
 import { getProfile, requireUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 
 type Props = {
   searchParams: Promise<{ next?: string; edit?: string }>;
@@ -27,27 +28,55 @@ export default async function OnboardingPage({ searchParams }: Props) {
     .from("social_links")
     .select("type,url,is_public")
     .eq("user_id", user.id);
+  const { data: profileExtra } = await supabase
+    .from("profiles")
+    .select("headline,location")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const form = (
+    <OnboardingForm
+      nextPath={nextParam ?? "/ideas"}
+      showIntroPanel={!isEdit}
+      initialData={{
+        name: profile?.name ?? "",
+        username: profile?.username ?? "",
+        headline: profileExtra?.headline ?? "",
+        location: profileExtra?.location ?? "",
+        bio: profile?.bio ?? "",
+        codingLevel: (profile?.coding_level as "BEGINNER" | "INTERMEDIATE" | "EXPERT" | null) ?? "BEGINNER",
+        profileImageUrl: profile?.profile_image_url ?? "",
+        skills: (skills ?? []).map((skill) => ({ name: skill.name, level: skill.level })),
+        socialLinks: (socialLinks ?? []).map((link) => ({
+          type: link.type,
+          url: link.url,
+          isPublic: link.is_public,
+        })),
+      }}
+    />
+  );
+
+  if (!isEdit) {
+    return (
+      <main className="h-screen overflow-hidden bg-[linear-gradient(180deg,#f4f8ff_0%,#ffffff_60%)] px-1.5 py-4">
+        <div className="mx-auto h-full w-full max-w-[92rem]">{form}</div>
+      </main>
+    );
+  }
 
   return (
-    <main className="h-screen overflow-hidden bg-[linear-gradient(180deg,#f4f8ff_0%,#ffffff_60%)] px-1.5 py-4">
-      <div className="mx-auto h-full w-full max-w-[92rem]">
-        <OnboardingForm
-          nextPath={nextParam ?? "/ideas"}
-          initialData={{
-            name: profile?.name ?? "",
-            username: profile?.username ?? "",
-            bio: profile?.bio ?? "",
-            codingLevel: (profile?.coding_level as "BEGINNER" | "INTERMEDIATE" | "EXPERT" | null) ?? "BEGINNER",
-            profileImageUrl: profile?.profile_image_url ?? "",
-            skills: (skills ?? []).map((skill) => ({ name: skill.name, level: skill.level })),
-            socialLinks: (socialLinks ?? []).map((link) => ({
-              type: link.type,
-              url: link.url,
-              isPublic: link.is_public,
-            })),
-          }}
-        />
-      </div>
+    <main className="flex h-screen w-full overflow-hidden">
+      <AppSidebar
+        active="manage-profile"
+        user={{
+          id: user.id,
+          email: user.email,
+          name: profile?.name,
+          username: profile?.username,
+          profileImageUrl: profile?.profile_image_url,
+        }}
+      />
+      <section className="min-h-0 flex-1 overflow-hidden px-4 py-4">{form}</section>
     </main>
   );
 }

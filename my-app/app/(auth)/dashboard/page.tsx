@@ -1,5 +1,6 @@
 import { requireOnboarded, requireUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import { DashboardTabs } from "@/features/dashboard/components/dashboard-tabs";
 import { MyIdeasList } from "@/features/dashboard/components/my-ideas-list";
 import { MyBuildsList } from "@/features/dashboard/components/my-builds-list";
@@ -8,6 +9,7 @@ import { SavedIdeasList } from "@/features/dashboard/components/saved-ideas-list
 import { fetchIdeaStatsMap } from "@/lib/ideas/status";
 import { ReceivedJoinRequestsList } from "@/features/join-requests/components/received-join-requests-list";
 import { SentJoinRequestsList } from "@/features/join-requests/components/sent-join-requests-list";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 
 type Props = {
   searchParams: Promise<{ tab?: "ideas" | "builds" | "requests" | "drafts" | "saved" }>;
@@ -26,6 +28,11 @@ export default async function DashboardPage({ searchParams }: Props) {
     .eq("posted_by_user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(40);
+  const { data: myProfile } = await supabase
+    .from("profiles")
+    .select("name,username,profile_image_url")
+    .eq("id", user.id)
+    .maybeSingle();
 
   const statsMap = await fetchIdeaStatsMap(
     supabase as never,
@@ -157,44 +164,93 @@ export default async function DashboardPage({ searchParams }: Props) {
     };
   });
 
-  return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-6 py-10">
-      <header className="space-y-2">
-        <h1 className="font-heading text-3xl font-semibold text-ink">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Track your ideas and implementation work.</p>
-      </header>
-      <DashboardTabs active={tab} />
+  const publishedCount = myIdeas.filter((idea) => idea.visibility === "PUBLISHED").length;
+  const activeBuildCount = mergedBuilds.filter((build) => build.status === "IN_PROGRESS").length;
+  const receivedPendingCount = receivedRequests.filter((request) => request.status === "PENDING").length;
+  const avgScore =
+    myIdeas.filter((idea) => idea.quality_score !== null).length > 0
+      ? (
+          myIdeas.reduce((sum, idea) => sum + (idea.quality_score ?? 0), 0) /
+          myIdeas.filter((idea) => idea.quality_score !== null).length
+        ).toFixed(1)
+      : "0.0";
 
-      {tab === "ideas" ? <MyIdeasList ideas={myIdeas} /> : null}
-      {tab === "builds" ? (
-        <MyBuildsList
-          builds={mergedBuilds.map((build) => ({
-            ...build,
-            ideas: { title: build.ideas?.[0]?.title ?? null },
-          }))}
-        />
-      ) : null}
-      {tab === "requests" ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <section className="space-y-3">
-            <h2 className="font-heading text-xl text-ink">Received</h2>
-            <ReceivedJoinRequestsList items={receivedRequests} />
-          </section>
-          <section className="space-y-3">
-            <h2 className="font-heading text-xl text-ink">Sent</h2>
-            <SentJoinRequestsList items={sentRequests} />
-          </section>
-        </div>
-      ) : null}
-      {tab === "drafts" ? <DraftsList drafts={drafts ?? []} /> : null}
-      {tab === "saved" ? (
-        <SavedIdeasList
-          ideas={(savedIdeas ?? []).map((row) => {
-            const idea = (row.ideas as { id: string; title: string; quality_score: number | null }[])[0];
-            return idea;
-          }).filter(Boolean)}
-        />
-      ) : null}
+  return (
+    <main className="flex h-screen w-full gap-6 overflow-hidden pb-8">
+      <AppSidebar
+        active="dashboard"
+        user={{
+          id: user.id,
+          email: user.email,
+          name: myProfile?.name,
+          username: myProfile?.username,
+          profileImageUrl: myProfile?.profile_image_url,
+        }}
+      />
+
+      <div className="hide-scrollbar min-w-0 flex-1 space-y-6 overflow-y-auto px-6 pt-6">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="font-heading text-3xl font-semibold text-ink">Welcome back</h1>
+            <p className="text-sm text-muted-foreground">Here&apos;s what&apos;s happening with your ideas and builds.</p>
+          </div>
+          <Link href="/ideas/submit" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+            Submit an idea
+          </Link>
+        </header>
+
+        <section className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-md border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Ideas Published</p>
+            <p className="mt-1 text-3xl font-semibold text-ink">{publishedCount}</p>
+          </div>
+          <div className="rounded-md border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Active Builds</p>
+            <p className="mt-1 text-3xl font-semibold text-ink">{activeBuildCount}</p>
+          </div>
+          <div className="rounded-md border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Pending Requests</p>
+            <p className="mt-1 text-3xl font-semibold text-ink">{receivedPendingCount}</p>
+          </div>
+          <div className="rounded-md border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Average Idea Score</p>
+            <p className="mt-1 text-3xl font-semibold text-ink">{avgScore}</p>
+          </div>
+        </section>
+
+        <DashboardTabs active={tab} />
+
+        {tab === "ideas" ? <MyIdeasList ideas={myIdeas} /> : null}
+        {tab === "builds" ? (
+          <MyBuildsList
+            builds={mergedBuilds.map((build) => ({
+              ...build,
+              ideas: { title: build.ideas?.[0]?.title ?? null },
+            }))}
+          />
+        ) : null}
+        {tab === "requests" ? (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="space-y-3">
+              <h2 className="font-heading text-xl text-ink">Received</h2>
+              <ReceivedJoinRequestsList items={receivedRequests} />
+            </section>
+            <section className="space-y-3">
+              <h2 className="font-heading text-xl text-ink">Sent</h2>
+              <SentJoinRequestsList items={sentRequests} />
+            </section>
+          </div>
+        ) : null}
+        {tab === "drafts" ? <DraftsList drafts={drafts ?? []} /> : null}
+        {tab === "saved" ? (
+          <SavedIdeasList
+            ideas={(savedIdeas ?? []).map((row) => {
+              const idea = (row.ideas as { id: string; title: string; quality_score: number | null }[])[0];
+              return idea;
+            }).filter(Boolean)}
+          />
+        ) : null}
+      </div>
     </main>
   );
 }

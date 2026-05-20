@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { AtSign, Check, CircleUserRound, Code2, Globe, Leaf, Rocket, Search, TrendingUp, User, X, Zap } from "lucide-react";
+import { AtSign, Check, CircleUserRound, Code2, Globe, Leaf, MapPin, Rocket, Search, TrendingUp, User, X, Zap } from "lucide-react";
 import { completeOnboarding } from "@/features/onboarding/actions";
 import { Button } from "@/components/ui/button";
 import { UploadField } from "@/components/upload-field";
@@ -25,6 +25,8 @@ type SocialRow = {
 type OnboardingInitialData = {
   name: string;
   username: string;
+  headline: string;
+  location: string;
   bio: string;
   codingLevel: "BEGINNER" | "INTERMEDIATE" | "EXPERT";
   profileImageUrl: string;
@@ -72,12 +74,16 @@ function normalizeSkillName(value: string) {
 export function OnboardingForm({
   nextPath = "/ideas",
   initialData,
+  showIntroPanel = true,
 }: {
   nextPath?: string;
   initialData?: Partial<OnboardingInitialData>;
+  showIntroPanel?: boolean;
 }) {
   const [name, setName] = useState(initialData?.name ?? "");
   const [username, setUsername] = useState(initialData?.username ?? "");
+  const [headline, setHeadline] = useState(initialData?.headline ?? "");
+  const [location, setLocation] = useState(initialData?.location ?? "");
   const [bio, setBio] = useState(initialData?.bio ?? "");
   const [codingLevel, setCodingLevel] = useState<"BEGINNER" | "INTERMEDIATE" | "EXPERT">(initialData?.codingLevel ?? "BEGINNER");
   const [skills, setSkills] = useState<SkillRow[]>(initialData?.skills ?? []);
@@ -143,7 +149,8 @@ export function OnboardingForm({
 
   return (
     <div className="flex h-full gap-6 overflow-hidden">
-      <aside className="h-full w-[200px] shrink-0 space-y-5 overflow-hidden">
+      {showIntroPanel ? (
+        <aside className="h-full w-[200px] shrink-0 space-y-5 overflow-hidden">
         <div className="space-y-2.5">
           <div className="flex items-center gap-2 text-primary">
             <Zap className="h-4 w-4" />
@@ -201,8 +208,9 @@ export function OnboardingForm({
           </p>
         </div>
       </aside>
+      ) : null}
 
-      <div className="min-h-0 w-[66%] overflow-y-auto pr-1">
+      <div className={`min-h-0 overflow-y-auto pr-1 ${showIntroPanel ? "w-[66%]" : "w-[74%]"}`}>
         <Card className="bg-transparent shadow-none backdrop-blur-0 border-0 rounded-none">
         <CardHeader className="pb-6">
           <div className="flex items-start justify-between gap-4">
@@ -258,6 +266,32 @@ export function OnboardingForm({
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">Used in your public URL: /u/{username || "your_username"}</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="headline">Headline (optional)</Label>
+                      <Input
+                        id="headline"
+                        name="headline"
+                        maxLength={120}
+                        className="h-10"
+                        placeholder="Software Engineer building AI products"
+                        value={headline}
+                        onChange={(e) => setHeadline(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location (optional)</Label>
+                      <Input
+                        id="location"
+                        name="location"
+                        maxLength={80}
+                        className="h-10"
+                        placeholder="Bhubaneswar, India"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -456,10 +490,16 @@ export function OnboardingForm({
                   <div>
                     <p className="text-base font-semibold leading-tight text-ink">{name.trim() || "Your Name"}</p>
                     <p className="text-xs font-medium text-primary">{usernamePreview}</p>
+                    {location.trim() ? (
+                      <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        {location.trim()}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  {bio.trim() || "I'm a beginner builder exploring new technologies and building cool projects."}
+                  {headline.trim() || bio.trim() || "I'm a beginner builder exploring new technologies and building cool projects."}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {filteredSkills.slice(0, 3).map((skill) => (

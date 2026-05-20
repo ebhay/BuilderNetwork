@@ -26,7 +26,8 @@ export function IdeaCard({ idea }: IdeaCardProps) {
   const builderLabel = profile?.username ? `@${profile.username}` : (profile?.name ?? "Unknown builder");
 
   return (
-    <Card className="border border-border">
+    <Card className="overflow-hidden border border-border">
+      <div className="h-20 bg-[linear-gradient(135deg,hsl(var(--primary)/0.16),hsl(var(--accent)/0.65))]" />
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <IdeaStatusBadge visibility={idea.visibility} />
@@ -75,3 +76,4 @@ export function IdeaCard({ idea }: IdeaCardProps) {
     </Card>
   );
 }
+
