@@ -164,21 +164,23 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   ].filter(Boolean) as string[];
 
   return (
-    <main className="flex h-screen w-full gap-6 overflow-hidden">
-      {viewer ? (
-        <AppSidebar
-          active="my-profile"
-          user={{
-            id: viewer.id,
-            email: viewer.email,
-            name: viewerProfile?.name,
-            username: viewerProfile?.username,
-            profileImageUrl: viewerProfile?.profile_image_url,
-          }}
-        />
-      ) : null}
+    <main className="flex min-h-screen lg:h-screen w-full flex-col lg:flex-row gap-0 overflow-hidden bg-background">
+      <AppSidebar
+        active="my-profile"
+        user={
+          viewer
+            ? {
+                id: viewer.id,
+                email: viewer.email,
+                name: viewerProfile?.name,
+                username: viewerProfile?.username,
+                profileImageUrl: viewerProfile?.profile_image_url,
+              }
+            : null
+        }
+      />
 
-      <section className="hide-scrollbar mx-auto min-w-0 w-full max-w-7xl space-y-4 overflow-y-auto px-6 pt-6">
+      <div className="min-w-0 flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 bg-background lg:h-full hide-scrollbar">
         <header className="rounded-xl bg-card p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-4">
@@ -370,7 +372,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
 
           </aside>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

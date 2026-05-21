@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { firstRelation } from "@/lib/supabase/relations";
 
 const sendJoinRequestSchema = z.object({
   implementationId: z.string().uuid(),
@@ -102,7 +103,9 @@ export async function respondJoinRequestAction(formData: FormData): Promise<void
     throw new Error("Join request not found.");
   }
 
-  const implementation = (request.implementations as { id: string; lead_user_id: string }[])[0];
+  const implementation = firstRelation(
+    request.implementations as { id: string; lead_user_id: string }[] | { id: string; lead_user_id: string } | null,
+  );
   if (!implementation || implementation.lead_user_id !== user.id) {
     throw new Error("Only the implementation lead can manage this request.");
   }
@@ -128,14 +131,20 @@ export async function respondJoinRequestAction(formData: FormData): Promise<void
   }
 
   if (nextStatus === "ACCEPTED") {
-    const { error: memberError } = await supabase.from("implementation_members").upsert(
-      {
-        implementation_id: request.implementation_id,
-        user_id: request.requester_user_id,
-        role: "TEAMMATE",
-      },
-      { onConflict: "implementation_id,user_id", ignoreDuplicates: true },
-    );
+    const { data: existingMember } = await supabase
+      .from("implementation_members")
+      .select("id")
+      .eq("implementation_id", request.implementation_id)
+      .eq("user_id", request.requester_user_id)
+      .maybeSingle();
+
+    const { error: memberError } = existingMember
+      ? { error: null }
+      : await supabase.from("implementation_members").insert({
+          implementation_id: request.implementation_id,
+          user_id: request.requester_user_id,
+          role: "TEAMMATE",
+        });
 
     if (memberError) {
       throw new Error(memberError.message);

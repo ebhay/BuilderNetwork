@@ -82,7 +82,7 @@ export default async function IdeasPage({ searchParams }: Props) {
   });
 
   return (
-    <main className="flex h-screen w-full gap-6 overflow-hidden pb-8">
+    <main className="flex min-h-screen lg:h-screen w-full flex-col lg:flex-row gap-0 overflow-hidden bg-background">
       <AppSidebar
         active="ideas"
         user={
@@ -98,7 +98,7 @@ export default async function IdeasPage({ searchParams }: Props) {
         }
       />
 
-      <div className="hide-scrollbar min-w-0 flex-1 space-y-6 overflow-y-auto px-6 pt-6">
+      <div className="min-w-0 flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 bg-background lg:h-full hide-scrollbar">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-heading text-3xl font-semibold text-ink">Explore Ideas</h1>

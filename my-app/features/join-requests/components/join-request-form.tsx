@@ -16,11 +16,11 @@ export function JoinRequestForm({ implementationId }: { implementationId: string
       <Textarea
         name="message"
         maxLength={500}
-        placeholder="Optional note for the build lead"
-        className="min-h-20"
+        placeholder="Tell the build lead how you want to help. Keep it short and specific."
+        className="min-h-24"
       />
       <Button type="submit" disabled={pending}>
-        {pending ? "Sending..." : "Request to Join"}
+        {pending ? "Sending..." : "Request to join this build"}
       </Button>
       {state.message ? (
         <p className={`text-sm ${state.ok ? "text-emerald-700" : "text-destructive"}`}>{state.message}</p>

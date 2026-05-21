@@ -81,6 +81,14 @@ const publishSchema = z.object({
   confirmNeedsRefinement: z.boolean().optional(),
 });
 
+const rereviewSchema = z.object({
+  ideaId: z.string().uuid(),
+  title: z.string().trim().min(6).max(140),
+  description: z.string().trim().min(30).max(6000),
+  screenshotUrl: z.string().trim().url().optional().or(z.literal("")),
+  referenceLinks: z.array(z.string().trim().url()),
+});
+
 export async function publishIdeaAction(formData: FormData) {
   const user = await requireUser();
   const input = publishSchema.parse({
@@ -122,4 +130,85 @@ export async function publishIdeaAction(formData: FormData) {
   revalidatePath(`/ideas/${input.ideaId}`);
   revalidatePath("/ideas");
   redirect(`/ideas/${input.ideaId}`);
+}
+
+export async function updateIdeaForRereviewAction(formData: FormData) {
+  const user = await requireUser();
+  await requireOnboarded(user.id, "/ideas");
+
+  const input = rereviewSchema.parse({
+    ideaId: formData.get("ideaId"),
+    title: formData.get("title"),
+    description: formData.get("description"),
+    screenshotUrl: formData.get("screenshotUrl"),
+    referenceLinks: parseStringArray(formData.get("referenceLinks")),
+  });
+
+  const supabase = await createSupabaseServerClient();
+  const { data: idea, error: fetchError } = await supabase
+    .from("ideas")
+    .select("id,posted_by_user_id,visibility")
+    .eq("id", input.ideaId)
+    .single();
+
+  if (fetchError) throw new Error(fetchError.message);
+  if (!idea || idea.posted_by_user_id !== user.id) {
+    throw new Error("Unauthorized update request.");
+  }
+  if (idea.visibility !== "DRAFT") {
+    throw new Error("You can edit and re-review only while the idea is still a draft.");
+  }
+
+  const contentHash = createIdeaContentHash({
+    title: input.title,
+    description: input.description,
+    screenshotUrl: input.screenshotUrl || null,
+    referenceLinks: input.referenceLinks,
+  });
+
+  const { error: updateError } = await supabase
+    .from("ideas")
+    .update({
+      title: input.title,
+      description: input.description,
+      screenshot_url: input.screenshotUrl || null,
+      reference_links: input.referenceLinks,
+      content_hash: contentHash,
+      review_status: "PENDING_REVIEW",
+      review_error: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.ideaId);
+  if (updateError) throw new Error(updateError.message);
+
+  const jobPayload = {
+    status: "QUEUED" as const,
+    attempts: 0,
+    next_attempt_at: new Date().toISOString(),
+    last_error: null,
+    updated_at: new Date().toISOString(),
+  };
+  const { data: existingJob } = await supabase
+    .from("idea_review_jobs")
+    .select("id")
+    .eq("idea_id", input.ideaId)
+    .maybeSingle();
+  if (existingJob) {
+    const { error: jobUpdateError } = await supabase
+      .from("idea_review_jobs")
+      .update(jobPayload)
+      .eq("idea_id", input.ideaId);
+    if (jobUpdateError) throw new Error(jobUpdateError.message);
+  } else {
+    const { error: jobInsertError } = await supabase.from("idea_review_jobs").insert({
+      idea_id: input.ideaId,
+      ...jobPayload,
+    });
+    if (jobInsertError) throw new Error(jobInsertError.message);
+  }
+
+  revalidatePath(`/ideas/${input.ideaId}/review`);
+  revalidatePath(`/ideas/${input.ideaId}`);
+  revalidatePath("/ideas");
+  redirect(`/ideas/${input.ideaId}/review`);
 }

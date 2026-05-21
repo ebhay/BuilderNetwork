@@ -16,6 +16,15 @@ export async function processIdeaReviewJob(ideaId: string) {
 
   if (idea.last_reviewed_hash && idea.last_reviewed_hash === idea.content_hash) {
     await supabase
+      .from("ideas")
+      .update({
+        review_status: "REVIEWED",
+        review_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", ideaId);
+
+    await supabase
       .from("idea_review_jobs")
       .update({ status: "SUCCEEDED", updated_at: new Date().toISOString() })
       .eq("idea_id", ideaId);

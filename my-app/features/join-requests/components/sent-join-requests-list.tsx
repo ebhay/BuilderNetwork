@@ -32,7 +32,7 @@ export function SentJoinRequestsList({ items }: { items: SentJoinRequest[] }) {
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Lead: {item.lead?.name ?? "Unknown"} {item.lead?.coding_level ? `· ${item.lead.coding_level}` : ""}
+              Lead: {item.lead?.name ?? "Builder"} {item.lead?.coding_level ? `· ${item.lead.coding_level}` : ""}
             </p>
           </CardHeader>
           <CardContent>
@@ -45,3 +45,4 @@ export function SentJoinRequestsList({ items }: { items: SentJoinRequest[] }) {
     </div>
   );
 }
+

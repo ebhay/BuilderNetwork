@@ -74,6 +74,27 @@ const markBuiltSchema = z.object({
   deployedUrl: deployedUrlSchema,
 });
 
+const updateBuildNoteSchema = z.object({
+  implementationId: z.string().uuid(),
+  buildNote: z.string().trim().max(1200).optional().or(z.literal("")),
+});
+
+const updateBuildRolesSchema = z.object({
+  implementationId: z.string().uuid(),
+  roles: z.string().trim().max(300).optional().or(z.literal("")),
+});
+
+const updateBuildTargetSchema = z.object({
+  implementationId: z.string().uuid(),
+  targetCompletionTime: z.string().trim().max(120).optional().or(z.literal("")),
+});
+
+const updateMemberRoleFocusSchema = z.object({
+  implementationId: z.string().uuid(),
+  memberUserId: z.string().uuid(),
+  roleFocus: z.string().trim().max(80).optional().or(z.literal("")),
+});
+
 export async function markImplementationBuiltAction(formData: FormData) {
   const user = await requireUser();
   const supabase = await createSupabaseServerClient();
@@ -108,6 +129,158 @@ export async function markImplementationBuiltAction(formData: FormData) {
   revalidatePath(`/ideas/${implementation.idea_id}`);
   revalidatePath(`/implementations/${input.implementationId}`);
   redirect(`/implementations/${input.implementationId}`);
+}
+
+export async function updateBuildNoteAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = await createSupabaseServerClient();
+
+  const input = updateBuildNoteSchema.parse({
+    implementationId: formData.get("implementationId"),
+    buildNote: formData.get("buildNote"),
+  });
+
+  const { data: implementation } = await supabase
+    .from("implementations")
+    .select("id,lead_user_id,idea_id")
+    .eq("id", input.implementationId)
+    .single();
+
+  if (!implementation || implementation.lead_user_id !== user.id) {
+    throw new Error("Only lead builder can edit build notes.");
+  }
+
+  const { error } = await supabase
+    .from("implementations")
+    .update({
+      build_note: input.buildNote || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.implementationId)
+    .eq("lead_user_id", user.id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/ideas/${implementation.idea_id}`);
+  revalidatePath(`/implementations/${input.implementationId}`);
+  redirect(`/implementations/${input.implementationId}`);
+}
+
+export async function updateBuildRolesAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = await createSupabaseServerClient();
+
+  const input = updateBuildRolesSchema.parse({
+    implementationId: formData.get("implementationId"),
+    roles: formData.get("roles"),
+  });
+
+  const { data: implementation } = await supabase
+    .from("implementations")
+    .select("id,lead_user_id,idea_id")
+    .eq("id", input.implementationId)
+    .single();
+
+  if (!implementation || implementation.lead_user_id !== user.id) {
+    throw new Error("Only lead builder can edit needed roles.");
+  }
+
+  const roles = (input.roles ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 10);
+
+  const { error } = await supabase
+    .from("implementations")
+    .update({
+      needed_roles: roles,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.implementationId)
+    .eq("lead_user_id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/ideas/${implementation.idea_id}`);
+  revalidatePath(`/implementations/${input.implementationId}`);
+  redirect(`/implementations/${input.implementationId}`);
+}
+
+export async function updateBuildTargetAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = await createSupabaseServerClient();
+
+  const input = updateBuildTargetSchema.parse({
+    implementationId: formData.get("implementationId"),
+    targetCompletionTime: formData.get("targetCompletionTime"),
+  });
+
+  const { data: implementation } = await supabase
+    .from("implementations")
+    .select("id,lead_user_id,idea_id")
+    .eq("id", input.implementationId)
+    .single();
+
+  if (!implementation || implementation.lead_user_id !== user.id) {
+    throw new Error("Only lead builder can edit target completion time.");
+  }
+
+  const { error } = await supabase
+    .from("implementations")
+    .update({
+      target_completion_time: input.targetCompletionTime || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.implementationId)
+    .eq("lead_user_id", user.id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/ideas/${implementation.idea_id}`);
+  revalidatePath(`/implementations/${input.implementationId}`);
+  redirect(`/implementations/${input.implementationId}`);
+}
+
+export async function updateMemberRoleFocusAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = await createSupabaseServerClient();
+  const input = updateMemberRoleFocusSchema.parse({
+    implementationId: formData.get("implementationId"),
+    memberUserId: formData.get("memberUserId"),
+    roleFocus: formData.get("roleFocus"),
+  });
+
+  const { data: implementation } = await supabase
+    .from("implementations")
+    .select("id,lead_user_id,idea_id")
+    .eq("id", input.implementationId)
+    .single();
+  if (!implementation || implementation.lead_user_id !== user.id) {
+    throw new Error("Only lead builder can edit member roles.");
+  }
+
+  const { data: membership } = await supabase
+    .from("implementation_members")
+    .select("implementation_id,user_id")
+    .eq("implementation_id", input.implementationId)
+    .eq("user_id", input.memberUserId)
+    .maybeSingle();
+  if (!membership) throw new Error("Member not found in this implementation.");
+
+  const { error } = await supabase
+    .from("implementation_members")
+    .update({
+      role_focus: input.roleFocus || null,
+    })
+    .eq("implementation_id", input.implementationId)
+    .eq("user_id", input.memberUserId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/ideas/${implementation.idea_id}`);
+  revalidatePath(`/implementations/${input.implementationId}`);
 }
 
 const toggleSavedSchema = z.object({

@@ -14,29 +14,58 @@ type ImplementationCardProps = {
     target_completion_time: string | null;
     created_at: string;
   };
+  commitCount?: number | null;
   ideaTitle?: string;
   leadName?: string;
+  leadProfileHref?: string | null;
   membersCount?: number;
   teamAvatars?: Array<{ userId: string; profileImageUrl: string | null; name: string | null }>;
 };
 
-export function ImplementationCard({ implementation, ideaTitle: _ideaTitle, leadName, membersCount = 0, teamAvatars = [] }: ImplementationCardProps) {
+export function ImplementationCard({
+  implementation,
+  ideaTitle,
+  leadName,
+  leadProfileHref = null,
+  membersCount = 0,
+  teamAvatars = [],
+  commitCount = null,
+}: ImplementationCardProps) {
   const statusLabel = implementation.status === "BUILT" ? "Completed" : "In progress";
   const visibleAvatars = teamAvatars.slice(0, 3);
   const extraMembers = Math.max(membersCount - visibleAvatars.length, 0);
-  const cardTitle = implementation.build_title?.trim() || "Implementation";
+  const cardTitle = implementation.build_title?.trim() || ideaTitle || "Untitled build";
   return (
     <Card className="overflow-hidden border-0 shadow-none">
       <CardHeader className="space-y-2 pb-3">
-        <ImplementationStatusBadge status={implementation.status} />
+        <div className="flex items-center gap-2">
+          <ImplementationStatusBadge status={implementation.status} />
+          {commitCount !== null ? (
+            <span className="text-xs text-muted-foreground">{commitCount} commits</span>
+          ) : null}
+        </div>
         <CardTitle className="font-heading text-lg">
           {cardTitle}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-muted-foreground">
         <p>Status: {statusLabel}</p>
+        {ideaTitle ? (
+          <p>
+            Idea: <span className="text-foreground">{ideaTitle}</span>
+          </p>
+        ) : null}
         <div className="flex items-center justify-between">
-          <p>Lead: <span className="text-foreground">{leadName ?? "Unknown builder"}</span></p>
+          <p>
+            Lead:{" "}
+            {leadProfileHref ? (
+              <Link href={leadProfileHref} className="text-foreground underline-offset-2 hover:underline">
+                {leadName ?? "Builder"}
+              </Link>
+            ) : (
+              <span className="text-foreground">{leadName ?? "Builder"}</span>
+            )}
+          </p>
           <div className="flex items-center gap-2">
             <div className="flex -space-x-2">
               {visibleAvatars.map((member) => (
@@ -72,9 +101,12 @@ export function ImplementationCard({ implementation, ideaTitle: _ideaTitle, lead
           </a>
         ) : null}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex items-center gap-2">
         <Link href={`/implementations/${implementation.id}`} className={buttonVariants({ variant: "outline" })}>
-          View details
+          View build
+        </Link>
+        <Link href={`/implementations/${implementation.id}`} className={buttonVariants({ variant: "default" })}>
+          Join
         </Link>
       </CardFooter>
     </Card>

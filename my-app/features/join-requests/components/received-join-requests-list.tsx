@@ -35,7 +35,7 @@ export function ReceivedJoinRequestsList({ items }: { items: ReceivedJoinRequest
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Requester: {item.requester?.name ?? "Unknown"} {item.requester?.coding_level ? `· ${item.requester.coding_level}` : ""}
+              Requester: {item.requester?.name ?? "Builder"} {item.requester?.coding_level ? `· ${item.requester.coding_level}` : ""}
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -69,3 +69,4 @@ export function ReceivedJoinRequestsList({ items }: { items: ReceivedJoinRequest
     </div>
   );
 }
+

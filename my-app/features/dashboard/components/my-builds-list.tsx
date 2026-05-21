@@ -12,6 +12,9 @@ export function MyBuildsList({
     target_completion_time: string | null;
     created_at: string;
     ideas: { title: string | null } | null;
+    leadName?: string | null;
+    leadProfileHref?: string | null;
+    commitCount?: number | null;
   }>;
 }) {
   if (builds.length === 0) {
@@ -23,12 +26,15 @@ export function MyBuildsList({
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2">
       {builds.map((build) => (
         <ImplementationCard
           key={build.id}
           implementation={build}
           ideaTitle={build.ideas?.title ?? "Idea"}
+          leadName={build.leadName ?? "You"}
+          leadProfileHref={build.leadProfileHref ?? null}
+          commitCount={build.commitCount ?? null}
         />
       ))}
     </div>

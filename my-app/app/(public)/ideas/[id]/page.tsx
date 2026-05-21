@@ -13,6 +13,8 @@ import { getCurrentUser, getProfile } from "@/lib/auth/session";
 import { ImplementationCard } from "@/features/implementations/components/implementation-card";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { IdeaDetailActions } from "@/features/ideas/components/idea-detail-actions";
+import { displayBuilderName } from "@/lib/supabase/relations";
+import { getGithubCommitCounts } from "@/lib/github/commits";
 
 import type { Metadata } from "next";
 
@@ -95,15 +97,20 @@ export default async function IdeaDetailPage({ params }: Props) {
     string,
     {
       leadName: string;
+      leadProfileHref: string | null;
       membersCount: number;
       avatars: Array<{ userId: string; profileImageUrl: string | null; name: string | null }>;
     }
   >();
+  const commitCountMap = await getGithubCommitCounts(
+    (implementations ?? []).map((item) => item.github_repo_url),
+  );
   for (const implementation of implementations ?? []) {
     const rows = (teamRows ?? []).filter((row) => row.implementation_id === implementation.id);
     const lead = rows.find((row) => row.role === "LEAD");
     teamMap.set(implementation.id, {
-      leadName: lead?.name ?? "Unknown builder",
+      leadName: lead?.name ?? "Builder",
+      leadProfileHref: lead ? `/u/${lead.user_id}` : null,
       membersCount: rows.length,
       avatars: rows.map((row) => ({ userId: row.user_id, profileImageUrl: row.profile_image_url, name: row.name })),
     });
@@ -123,7 +130,7 @@ export default async function IdeaDetailPage({ params }: Props) {
     .select("id,name,username,headline,profile_image_url")
     .eq("id", idea.posted_by_user_id)
     .maybeSingle();
-  const authorLabel = authorProfile?.username ? `@${authorProfile.username}` : (authorProfile?.name ?? "Unknown builder");
+  const authorLabel = displayBuilderName(authorProfile, "Builder");
 
   const review = idea.ai_feedback_json as
     | {
@@ -135,21 +142,23 @@ export default async function IdeaDetailPage({ params }: Props) {
     | null;
 
   return (
-    <main className="flex h-screen w-full gap-6 overflow-hidden">
-      {user ? (
-        <AppSidebar
-          active="ideas"
-          user={{
-            id: user.id,
-            email: user.email,
-            name: viewerProfile?.name,
-            username: viewerProfile?.username,
-            profileImageUrl: viewerProfile?.profile_image_url,
-          }}
-        />
-      ) : null}
+    <main className="flex min-h-screen lg:h-screen w-full flex-col lg:flex-row gap-0 overflow-hidden bg-background">
+      <AppSidebar
+        active="ideas"
+        user={
+          user
+            ? {
+                id: user.id,
+                email: user.email,
+                name: viewerProfile?.name,
+                username: viewerProfile?.username,
+                profileImageUrl: viewerProfile?.profile_image_url,
+              }
+            : null
+        }
+      />
 
-      <section className="hide-scrollbar min-w-0 flex-1 overflow-y-auto px-6 py-8">
+      <div className="min-w-0 flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 bg-background lg:h-full hide-scrollbar">
         <div className="mx-auto w-full max-w-7xl space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link href="/ideas" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
@@ -243,36 +252,39 @@ export default async function IdeaDetailPage({ params }: Props) {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-ink">{authorProfile?.name ?? "Unknown builder"}</p>
+                      <p className="text-sm font-medium text-ink">{authorProfile?.name ?? "Builder"}</p>
                       <p className="text-xs text-muted-foreground">{authorProfile?.headline ?? "Active builder"}</p>
                     </div>
                   </div>
-                  <Link href={authorProfile?.username ? `/u/${authorProfile.username}` : "#"} className={buttonVariants({ variant: "outline", className: "w-full" })}>
+                  <Link href={`/u/${authorProfile?.username ?? authorProfile?.id ?? idea.posted_by_user_id}`} className={buttonVariants({ variant: "outline", className: "w-full" })}>
                     View profile
                   </Link>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-none">
-                <CardContent className="space-y-4 p-0">
-                  <section className="grid gap-3">
-                    {(implementations ?? []).map((implementation) => (
-                      <ImplementationCard
-                        key={implementation.id}
-                        implementation={implementation}
-                        ideaTitle={idea.title}
-                        leadName={teamMap.get(implementation.id)?.leadName}
-                        membersCount={teamMap.get(implementation.id)?.membersCount}
-                        teamAvatars={teamMap.get(implementation.id)?.avatars}
-                      />
-                    ))}
-                  </section>
-                </CardContent>
-              </Card>
+              {(implementations ?? []).length > 0 ? (
+                <section className="grid gap-3">
+                  {(implementations ?? []).map((implementation) => {
+                    const team = teamMap.get(implementation.id);
+                    return (
+                        <ImplementationCard
+                          key={implementation.id}
+                          implementation={implementation}
+                          ideaTitle={idea.title}
+                          leadName={team?.leadName}
+                          leadProfileHref={team?.leadProfileHref ?? null}
+                          membersCount={team?.membersCount}
+                          teamAvatars={team?.avatars}
+                          commitCount={commitCountMap.get(implementation.github_repo_url) ?? null}
+                        />
+                      );
+                    })}
+                </section>
+              ) : null}
             </aside>
           </section>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

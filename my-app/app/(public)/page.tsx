@@ -400,7 +400,7 @@ export default async function PublicLandingPage() {
             {featuredIdeas.map((idea) => {
               const authorLabel = idea.profiles?.username
                 ? `@${idea.profiles.username}`
-                : (idea.profiles?.name ?? "Unknown builder");
+                : (idea.profiles?.name ?? "Builder");
 
               return (
                 <div
@@ -509,7 +509,7 @@ export default async function PublicLandingPage() {
             {builtProjects.map((build) => {
               const leadLabel = build.profiles?.username
                 ? `@${build.profiles.username}`
-                : (build.profiles?.name ?? "Unknown lead");
+                : (build.profiles?.name ?? "Build lead");
 
               const creatorLabel = build.ideas?.profiles?.username
                 ? `@${build.ideas.profiles.username}`

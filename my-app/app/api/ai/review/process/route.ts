@@ -45,8 +45,24 @@ export async function POST(request: Request) {
     await processIdeaReviewJob(ideaId);
   }
 
+  const targetIdeaId = body.ideaId ?? ideaIds[0] ?? null;
+  let reviewStatus: string | null = null;
+  let reviewError: string | null = null;
+  if (targetIdeaId) {
+    const { data: ideaStatus } = await service
+      .from("ideas")
+      .select("review_status,review_error")
+      .eq("id", targetIdeaId)
+      .maybeSingle();
+    reviewStatus = ideaStatus?.review_status ?? null;
+    reviewError = ideaStatus?.review_error ?? null;
+  }
+
   return NextResponse.json({
     ok: true,
     processed: ideaIds.length,
+    reviewStatus,
+    reviewError,
+    ideaId: targetIdeaId,
   });
 }

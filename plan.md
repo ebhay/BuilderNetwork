@@ -1457,3 +1457,161 @@ Next recommended steps:
 - Service role key never in browser code
 - Safe public member view for implementation pages
 - Content hash to avoid repeated AI review
+
+---
+
+## Incremental Update - 2026-05-20 (AI Review UX + Re-review Loop)
+
+Completed work:
+- Improved AI review normalization so scores coming back as `0-100` are converted to `0-10` instead of being hard-clamped at `10`.
+- Tightened base AI reviewer prompt to reduce score inflation and enforce stricter `0-10` scoring behavior.
+- Added idea edit + re-review loop before publish on `/ideas/[id]/review` (draft-only), including:
+  - edit `title`
+  - edit `description`
+  - reset review to `PENDING_REVIEW`
+  - queue/requeue review job
+- Enhanced pending-review UI with:
+  - stronger loading state
+  - progress-style animation
+  - explicit stay-on-page warning
+  - auto-processing hook enabled while pending
+
+Files changed:
+- `my-app/lib/ai/review.ts`
+- `my-app/features/ideas/actions.ts`
+- `my-app/features/ideas/components/pending-review.tsx`
+- `my-app/app/(auth)/ideas/[id]/review/page.tsx`
+
+Commands run:
+- `npm.cmd run lint` (pass with existing warnings)
+- `npm.cmd run typecheck` (pass)
+- `npm.cmd run build` (pass)
+
+Pass/fail:
+- Lint: Pass (warnings only; no new blocking lint errors)
+- Typecheck: Pass
+- Build: Pass
+
+Design decisions:
+- Keep review page as the single place for pre-publish refinement.
+- Use token-based UI styles for pending state and warning panel.
+- Keep retry semantics aligned with queued-job flow (no inline long-running mutation on submit).
+
+Known limitations:
+- AI output quality still depends on model behavior; prompt and normalization reduce inflation but do not guarantee perfect scoring distribution.
+- Existing repo-wide lint warnings in unrelated files remain.
+
+Next recommended step:
+- Add lightweight review-attempt history/timestamps in the review page so users can see when a re-review request was queued and last processed.
+
+
+## Incremental Update - 2026-05-20 (Edit Toggle + Dual AI Provider Fallback)
+
+Completed work:
+- Changed re-review editor UX to open only via top `Edit before re-review` button.
+- Added full editable fields in re-review form:
+  - title
+  - description
+  - screenshot URL/upload field
+  - reference links list
+- Updated re-review mutation to persist screenshot/reference links and recompute content hash from edited values.
+- Added dual AI provider flow for cost/latency control:
+  - Primary: OpenRouter model with 45-second timeout.
+  - Fallback: NVIDIA NIM if OpenRouter times out/fails.
+  - Dev fallback remains deterministic local mock when both providers are unavailable.
+- Updated environment contract for OpenRouter + NVIDIA explicit keys/models.
+
+Files changed:
+- `my-app/features/ideas/components/idea-rereview-form.tsx` (new)
+- `my-app/app/(auth)/ideas/[id]/review/page.tsx`
+- `my-app/features/ideas/actions.ts`
+- `my-app/lib/ai/client.ts`
+- `my-app/lib/ai/review.ts`
+- `my-app/.env.example`
+
+Commands run and results:
+- `npm.cmd run lint` -> pass (warnings only)
+- `npm.cmd run typecheck` -> pass
+- `npm.cmd run build` -> pass
+
+Known limitations:
+- Review `source` metadata currently keeps existing enum shape (`nim|mock`) for compatibility; OpenRouter path is treated as production AI source in persisted payload.
+
+## Incremental Update - 2026-05-21 (Dashboard Logic + Builder Mapping Fixes)
+
+Completed work:
+- Fixed profile relation normalization across idea/build surfaces so Supabase object-vs-array joins no longer show false `Unknown builder` labels.
+- Added shared relation helpers in `my-app/lib/supabase/relations.ts`.
+- Fixed implementation cards to display the parent idea title and changed the detail CTA to `View build`.
+- Merged join-request management into the `My Builds` dashboard view instead of keeping it as a separate dashboard section.
+- Removed auth-only dashboard/build/draft/saved links from the public sidebar state so `/ideas` remains cleanly browseable without login.
+- Improved dashboard tab rendering and build/request grouping for a clearer builder workflow.
+
+Changed files:
+- `my-app/lib/supabase/relations.ts`
+- `my-app/app/(auth)/dashboard/page.tsx`
+- `my-app/app/(public)/ideas/[id]/page.tsx`
+- `my-app/app/(public)/implementations/[id]/page.tsx`
+- `my-app/app/(public)/page.tsx`
+- `my-app/components/layout/app-sidebar.tsx`
+- `my-app/features/dashboard/components/dashboard-tabs.tsx`
+- `my-app/features/dashboard/components/my-builds-list.tsx`
+- `my-app/features/ideas/components/idea-card.tsx`
+- `my-app/features/implementations/components/implementation-card.tsx`
+- `my-app/features/implementations/components/implementation-members-list.tsx`
+- `my-app/features/join-requests/components/received-join-requests-list.tsx`
+- `my-app/features/join-requests/components/sent-join-requests-list.tsx`
+- `my-app/features/auth/components/auth-form.tsx`
+- `my-app/features/ideas/components/review-result-panel.tsx`
+
+Commands run and results:
+- `npm.cmd run typecheck` - pass
+- `npm.cmd run lint` - pass with one existing warning for external simple-icons `<img>` usage
+- `npm.cmd test` - pass (placeholder script)
+- `npm.cmd run check:deps` - pass (existing extraneous transitive package notices)
+- `npm.cmd run build` - pass
+- Runtime render check via `next start`:
+  - `/` -> 200
+  - `/ideas` -> 200
+  - `/login` -> 200
+  - `/dashboard` -> 200
+
+Design decisions:
+- Treat join requests as part of build management because requests target implementations, not ideas.
+- Keep public Explore Ideas navigation available without login and hide dashboard-only links when logged out.
+- Use neutral `Builder`/`Build lead` fallbacks only when a profile is truly missing.
+
+Known limitations:
+- No dedicated automated test suite yet; current `test` script remains a placeholder.
+- One lint warning remains for intentionally external simple-icons image rendering.
+
+## Incremental Update - 2026-05-21 (Implementation Detail UI Polish)
+
+Completed work:
+- Rebuilt implementation detail page into a clearer two-column layout with dark hero summary, primary action buttons, metadata panel, build overview, links panel, collaboration panel, team list, lead contact, and mark-built form.
+- Added stronger mapping for lead and idea author profiles on implementation detail by selecting ids/usernames/profile images and normalizing Supabase relation shapes.
+- Enhanced build team cards with avatars, role badges, and cleaner empty state.
+- Enhanced lead contact links with button-style external links.
+- Improved join-request form copy and status labels for clearer collaboration flow.
+
+Changed files:
+- `my-app/app/(public)/implementations/[id]/page.tsx`
+- `my-app/features/implementations/components/implementation-members-list.tsx`
+- `my-app/features/implementations/components/lead-contact-links.tsx`
+- `my-app/features/join-requests/components/join-request-form.tsx`
+- `my-app/features/join-requests/components/join-request-status.tsx`
+
+Commands run and results:
+- `npm.cmd run typecheck` - pass
+- `npm.cmd run lint` - pass with one existing warning for external simple-icons `<img>` usage
+- `npm.cmd test` - pass (placeholder script)
+- `npm.cmd run check:deps` - pass (existing extraneous transitive package notices)
+- `npm.cmd run build` - pass
+- Runtime render check via `next start`:
+  - `/` -> 200
+  - `/ideas` -> 200
+  - `/implementations/043a688a-0212-4779-b4c6-38dc383acd86` -> 200
+
+Known limitations:
+- Visual QA was performed by HTTP render status, not an interactive browser screenshot.
+

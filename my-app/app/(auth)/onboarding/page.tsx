@@ -65,7 +65,7 @@ export default async function OnboardingPage({ searchParams }: Props) {
   }
 
   return (
-    <main className="flex h-screen w-full overflow-hidden">
+    <main className="flex min-h-screen lg:h-screen w-full flex-col lg:flex-row gap-0 overflow-hidden bg-background">
       <AppSidebar
         active="manage-profile"
         user={{
@@ -76,7 +76,9 @@ export default async function OnboardingPage({ searchParams }: Props) {
           profileImageUrl: profile?.profile_image_url,
         }}
       />
-      <section className="min-h-0 flex-1 overflow-hidden px-4 py-4">{form}</section>
+      <div className="min-w-0 flex-1 overflow-y-auto px-4 md:px-8 py-0 bg-background lg:h-full hide-scrollbar">
+        {form}
+      </div>
     </main>
   );
 }

@@ -10,10 +10,10 @@ export function JoinRequestStatus({
     state === "LOGIN_REQUIRED"
       ? "Login required"
       : state === "PENDING"
-        ? "Request Pending"
+        ? "Request pending"
         : state === "MEMBER"
-          ? "Already Teammate"
-          : "Lead Builder";
+          ? "Already a teammate"
+          : "You lead this build";
   return (
     <Badge variant="outline" className="rounded-md">
       {label}
