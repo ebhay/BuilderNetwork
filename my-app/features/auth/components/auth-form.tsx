@@ -9,7 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function AuthForm() {
+type AuthFormProps = {
+  googleEnabled?: boolean;
+  siteUrl?: string | null;
+};
+
+export function AuthForm({ googleEnabled = true, siteUrl = null }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/ideas";
@@ -20,6 +25,12 @@ export function AuthForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  function getAuthRedirectBase() {
+    if (siteUrl && siteUrl.trim().length > 0) return siteUrl.replace(/\/+$/, "");
+    if (typeof window !== "undefined") return window.location.origin;
+    return "";
+  }
 
   async function submitEmailPassword(event: React.FormEvent) {
     event.preventDefault();
@@ -40,7 +51,7 @@ export function AuthForm() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(nextPath)}`,
+          emailRedirectTo: `${getAuthRedirectBase()}/api/auth/callback?next=${encodeURIComponent(nextPath)}`,
         },
       });
       if (error) {
@@ -57,13 +68,17 @@ export function AuthForm() {
   }
 
   async function loginWithGoogle() {
+    if (!googleEnabled) {
+      setMessage("Google OAuth is not configured. Add SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET and restart the app.");
+      return;
+    }
     setSubmitting(true);
     setMessage(null);
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(nextPath)}`,
+        redirectTo: `${getAuthRedirectBase()}/api/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
 
@@ -89,7 +104,7 @@ export function AuthForm() {
           variant="outline"
           className="w-full bg-background"
           onClick={loginWithGoogle}
-          disabled={submitting}
+          disabled={submitting || !googleEnabled}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" className="mr-2 h-4 w-4">
             <path
@@ -111,6 +126,11 @@ export function AuthForm() {
           </svg>
           Continue with Google
         </Button>
+        {!googleEnabled ? (
+          <p className="text-xs text-destructive">
+            Google OAuth is disabled: missing `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET`.
+          </p>
+        ) : null}
         <div className="relative py-1">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-dashed border-border" />

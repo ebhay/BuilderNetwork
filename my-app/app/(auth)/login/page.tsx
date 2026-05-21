@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/features/auth/components/auth-form";
 import { getCurrentUser, getProfile } from "@/lib/auth/session";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { getOptionalGoogleAuthEnv, isSupabaseConfigured } from "@/lib/supabase/env";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function LoginPage() {
+  const { SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET, NEXT_PUBLIC_SITE_URL } = getOptionalGoogleAuthEnv();
+
   if (!isSupabaseConfigured()) {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-3xl items-center px-6 py-10">
@@ -31,7 +33,10 @@ export default async function LoginPage() {
       <div className="pointer-events-none absolute left-1/2 top-24 h-96 w-[46rem] -translate-x-1/2 rounded-full border border-white/45" />
       <div className="pointer-events-none absolute left-1/2 top-32 h-[32rem] w-[58rem] -translate-x-1/2 rounded-full border border-white/35" />
       <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center justify-center">
-        <AuthForm />
+        <AuthForm
+          googleEnabled={Boolean(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET)}
+          siteUrl={NEXT_PUBLIC_SITE_URL ?? null}
+        />
       </div>
     </main>
   );

@@ -9,6 +9,11 @@ const serverEnvSchema = clientEnvSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 });
 
+const googleAuthServerEnvSchema = z.object({
+  SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+});
+
 const clientEnvSafeSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
@@ -41,4 +46,12 @@ export function isSupabaseConfigured() {
       parsed.data.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
       parsed.data.NEXT_PUBLIC_SUPABASE_ANON_KEY.trim().length > 0,
   );
+}
+
+export function getOptionalGoogleAuthEnv() {
+  return googleAuthServerEnvSchema.parse({
+    SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET:
+      process.env.SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+  });
 }
